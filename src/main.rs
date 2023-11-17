@@ -2,6 +2,7 @@ use std::env;
 use homedir::get_my_home;
 
 pub mod cli;
+pub mod config;
 pub mod add;
 pub mod datetime;
 pub mod file_utils;
@@ -14,6 +15,7 @@ use log;
 fn set_logging_level(args: &cli::Arguments) {
     if args.debug {
         env::set_var("RUST_LOG", "trace");
+        log::trace!("Logging level set to TRACE");
     } else {
         env::set_var("RUST_LOG", "info");
     }
@@ -34,8 +36,12 @@ fn main() {
     // pretty logger
     set_logging_level(&args);
 
-    // Print all arguments at the TRACE log level
-    log::trace!("{:?}", args);
+    // let conf = config::get_default_config();
+
+    // panic!();
+
+    // // Print all arguments at the TRACE log level
+    // log::trace!("{:?}", args);
 
     // Access the current core command
     let current_command = &args.command;
@@ -43,7 +49,7 @@ fn main() {
     // Get current home directory
     let home = get_my_home().unwrap().unwrap();
 
-    log::info!("My home {:?}", home);
+    log::trace!("Home directory is '{:?}'", home);
 
 
     // println!("{:?}", current_command);
@@ -57,8 +63,13 @@ fn main() {
 
     match current_command {
         cli::Command::Add(sc_data) => {
-            log::debug!("Subcommand data: {:?}", sc_data);
+            log::debug!("Add subcommand data: {:?}", sc_data);
             add::_add(&sc_data);
+        },
+        cli::Command::Config(sc_data) => {
+            log::debug!("Config subcommand data: {:?}", sc_data);
+            config::config(&sc_data);
+            // add::_add(&sc_data);
         }
     }
 }
