@@ -153,11 +153,14 @@ fn show_config() {
 }
 
 
-pub fn config(args: &cli::ConfigCommand) {
+pub fn config(args: &cli::cli_config::ConfigCommand) {
     let current_command = &args.command;
     match current_command {
-        cli::ConfigSubcommand::Edit(_) => {edit_config();},
-        cli::ConfigSubcommand::Show(_) => {show_config();}
+        Some(cli::cli_config::ConfigSubcommand::Edit(_)) => {edit_config();},
+        Some(cli::cli_config::ConfigSubcommand::Show(_)) => {show_config();},
+        None => {
+            trace!("No config option provided!");
+        }
     }
 }
 

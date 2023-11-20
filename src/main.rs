@@ -1,3 +1,5 @@
+// #![warn(missing_docs)]
+
 use std::env;
 use homedir::get_my_home;
 
@@ -13,9 +15,12 @@ use log;
 
 /// Sets the logging level for the entire package
 fn set_logging_level(args: &cli::Arguments) {
-    if args.debug {
+    if args.trace {
         env::set_var("RUST_LOG", "trace");
-        log::trace!("Logging level set to TRACE");
+        log::warn!("Logging level set to TRACE");
+    } else if args.debug {
+        env::set_var("RUST_LOG", "debug");
+        log::warn!("Logging level set to DEBUG");
     } else {
         env::set_var("RUST_LOG", "info");
     }
@@ -62,8 +67,8 @@ fn main() {
     //    },
 
     match current_command {
-        cli::Command::Add(sc_data) => {
-            log::debug!("Add subcommand data: {:?}", sc_data);
+        cli::Command::Event(sc_data) => {
+            log::debug!("Event subcommand data: {:?}", sc_data);
             add::_add(&sc_data);
         },
         cli::Command::Config(sc_data) => {

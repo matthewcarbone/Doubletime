@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use homedir::get_my_home;
 
-use crate::cli::{AddCommand};
+use crate::cli::cli_add::{AddCommand};
 use crate::datetime::{parse_command_line_date, get_current_timestamp};
 use crate::file_utils::make_directory;
 
