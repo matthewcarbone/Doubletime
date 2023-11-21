@@ -1,11 +1,8 @@
 [package]
 name = "doubletime"
 version = "0.1.0"
-edition = "2021"
+edition = "2023"
 authors = ["Matthew R. Carbone"]
-include = ["src/default_config.yaml"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 chrono = { version = "0.4.31" }
