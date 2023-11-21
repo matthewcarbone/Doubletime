@@ -26,9 +26,12 @@ to unstage event with hash 12ab382l.
 
 pub mod cli_event;
 pub mod cli_config;
+pub mod cli_project;
 
 use crate::cli::cli_event::EventCommand;
 use crate::cli::cli_config::ConfigCommand;
+use crate::cli::cli_project::ProjectCommand;
+
 use clap::{Parser, Subcommand};
 
 
@@ -37,7 +40,8 @@ use clap::{Parser, Subcommand};
 pub enum Command {
     /// Help message for Add.
     Event(EventCommand),
-    Config(ConfigCommand)
+    Config(ConfigCommand),
+    Project(ProjectCommand)
 }
 
 

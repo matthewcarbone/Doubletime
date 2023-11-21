@@ -8,57 +8,28 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use std::path::{PathBuf};
 use homedir::get_my_home;
-use log::{trace, warn, error};
+use log::{trace, info, warn, error};
 
 use crate::cli;
 use crate::file_utils::{make_directory, read_file_to_string, write_string_to_file};
 
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Project {
-
-    /// Total amount of time allocated to the project, in hours
-    total_time: f32,
-
-    /// Indicates whether or not the project is active or not
-    /// Setting this flag to false will prevent you from accidentally charging
-    /// it.
-    active: bool,
-
-    /// Whether or not the project is "real"
-    /// A real project has features on it enabled such as being able to add
-    /// time to it. Not being real means it's basically a placeholder.
-    real: bool,
-
-    start_date: String,
-    end_date: String,
-
+pub struct Config {
+    max_hours_per_day: f32,
+    
     /// Other metadata
     metadata: HashMap<String, String>
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Config {
-    max_hours_per_day: f32,
-    projects: Vec<Project>
-}
-
 
 /// Returns a default version of the Config so that users have a starting point
-pub fn get_default_config() -> Config {
+fn get_default_config() -> Config {
     let mut example_metadata = HashMap::new();
-    example_metadata.insert("P/A".to_string(), "56789/12345".to_string());
-    let example_project = Project {
-        total_time: 100.0,
-        active: true,
-        real: false,
-        start_date: "01-October-23".to_string(),
-        end_date: "01-October-24".to_string(),
-        metadata: example_metadata
-    };
+    example_metadata.insert("my name is".to_string(), "Matt".to_string());
     let config = Config {
         max_hours_per_day: 8.0,
-        projects: vec![example_project]
+        metadata: example_metadata
     };
     trace!("Default config retrieved: {:?}", config);
     return config;
@@ -68,7 +39,7 @@ pub fn get_default_config() -> Config {
 /**
 Gets Doubletime's home directory
 */
-pub fn get_doubletime_home_directory() -> PathBuf {
+fn get_doubletime_home_directory() -> PathBuf {
     let home = get_my_home().unwrap().unwrap();
     let mut file_path = PathBuf::from(home);
     file_path.push("Doubletime");
@@ -79,7 +50,7 @@ pub fn get_doubletime_home_directory() -> PathBuf {
 /**
 Gets the path of a directory. The path will be {HOME}/Doubletime/{name}.
 */
-pub fn get_doubletime_directory_path(name: String) -> PathBuf {
+fn get_doubletime_directory_path(name: String) -> PathBuf {
     let mut staging_path = get_doubletime_home_directory();
     staging_path.push(name);
     return staging_path;
@@ -88,16 +59,18 @@ pub fn get_doubletime_directory_path(name: String) -> PathBuf {
 
 /// Gets the config path as a PathBuf object
 fn get_config_path() -> PathBuf {
+    trace!("get_config_path()");
     let mut file_path = get_doubletime_home_directory();
     file_path.push("config.yaml");
-    trace!("Got config path at {}", file_path.to_string_lossy());
+    trace!("get_config_path: Got config path at {}", file_path.to_string_lossy());
     return file_path;
 }
 
 
 /// Writes the default configuration file
 fn write_default_config() -> Result<(), Box<dyn std::error::Error>> {
-    trace!("Calling write_default_config()");
+    trace!("write_default_config()");
+
     let config = get_default_config();
     let config_path = get_config_path();
     trace!("Attempting to write default config {:?} to {:?}", config, config_path);
@@ -110,8 +83,12 @@ fn write_default_config() -> Result<(), Box<dyn std::error::Error>> {
 /**
 Setup the Doubletime home directory and all required subdirectories
 */
-fn initialize() -> Result<(), Box<dyn std::error::Error>> {
-    trace!("Attempting initialization");
+pub fn initialize() -> Result<(), Box<dyn std::error::Error>> {
+    trace!("initialize()");
+
+    // Make the home directory
+    let home = get_doubletime_home_directory();
+    make_directory(home)?;
 
     // Make the staging directory
     let staging_directory = get_doubletime_directory_path("Staging".to_string());
@@ -121,12 +98,12 @@ fn initialize() -> Result<(), Box<dyn std::error::Error>> {
     let project_directory = get_doubletime_directory_path("Projects".to_string());
     make_directory(project_directory)?;
 
-
+    // Make the default config if it does not exist
     let config_path = get_config_path();
-    let parent = PathBuf::from(config_path.parent().unwrap());
-    make_directory(parent)?;
     if !config_path.exists() {
         write_default_config()?;
+        info!("Default config has been created!");
+        info!("Edit this config with `dt config edit`");
     }
     return Ok(());
 }
@@ -135,19 +112,7 @@ fn initialize() -> Result<(), Box<dyn std::error::Error>> {
 /// See here https://docs.rs/edit/latest/edit/fn.get_editor.html for details
 /// on how the default editor is chosen
 fn edit_config() {
-
-    // The initialization is safe in the sense that it will attempt to create
-    // the doubletime "home" directory at <HOME>/.doubletime, but will safely
-    // do nothing if the directory already exists.
-    match initialize() {
-        Ok(()) => {
-            trace!("Call to initialize() successful")
-        }
-        Err(e) => {
-            error!("Error {} with initialize() during edit_config", e);
-            panic!();
-        }
-    }
+    trace!("edit_config()");
 
     // Get the default editor. This is mainly for debugging.
     let editor = edit::get_editor();
@@ -155,6 +120,8 @@ fn edit_config() {
 
     // Get the config path
     let config_path = get_config_path();
+
+    let config_before_edit = read_file_to_string(config_path.clone());
 
     // Open the editor in your default config
     match edit::edit_file(config_path.clone()) {
@@ -164,6 +131,21 @@ fn edit_config() {
         Err(e) => {
             error!("Error {} editing config at {}", e, config_path.to_string_lossy());
             panic!();
+        }
+    }
+
+    // Now try to re-load the config from disk and check that it's valid. If it
+    // is not, we write the config_before_edit back to disk, rejecting the
+    // user's changes
+    let config_after_edit = read_file_to_string(config_path.clone());
+    let parsed: Result<Config, _> = serde_yaml::from_str(&config_after_edit.unwrap());
+    match parsed {
+        Ok(_) => {},
+        Err(_) => {
+            error!("Config edit failed");
+            error!("It's possible your edited config is not valid Config OR yaml file");
+            info!("Never fear! Rolling back config to before previous edits...");
+            let _ = write_string_to_file(&config_before_edit.unwrap(), config_path);
         }
     }
 }

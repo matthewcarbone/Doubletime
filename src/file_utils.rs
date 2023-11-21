@@ -22,10 +22,7 @@ pub fn make_directory(directory: PathBuf) -> Result<(), Box<dyn std::error::Erro
     if directory.exists() {
         trace!("directory {} already exists, exiting with Ok", dstring);
         return Ok(());
-    } else {
-        trace!("directory {} does not exist, continuing", dstring);
     }
-
     // Create the directory and all of its parents, propogating errors
     // accordingly
     create_dir_all(directory.clone())?;

@@ -33,8 +33,17 @@ fn match_dt(dt: &String) -> NaiveDate {
         Err(e) => {
             log::error!("Error parsing date with error {:?}", e);
             log::error!("Provided datetime which caused the error was {:}", dt);
+            log::error!("Provided datetime should be in format %d-%b-%y");
+            log::error!("For example: 21-Nov-23");
             panic!();
         }
+    }
+}
+
+pub fn validate_datetime_format(dt: &String) -> bool {
+    match NaiveDate::parse_from_str(dt, "%d-%b-%y") {
+        Ok(_) => {return true;},
+        Err(_) => {return false;}
     }
 }
 
