@@ -6,38 +6,53 @@ use clap::{Args, Subcommand};
 
 
 #[derive(Debug, Args)]
-pub struct ConfigEditCommand {}
+pub struct EventAddCommand {
+
+    /// The date corresponding to the event to be added
+    #[arg(short, long)]
+    pub date: Option<String>,
+
+    /// 'Commit message' for the event
+    #[arg(short, long)]
+    pub message: Option<String>,
+
+    // Project name for the event
+    #[arg(short, long)]
+    pub project: Option<String>
+
+}
 
 #[derive(Debug, Args)]
-pub struct ConfigShowCommand {}
+pub struct EventUnstageCommand {
+
+    /// Commit hash to unstage
+    #[arg(short, long)]
+    pub id: String
+
+}
 
 
 
 /// Config subcommands
 #[derive(Debug, Subcommand)]
-pub enum ConfigSubcommand {
+pub enum EventSubcommand {
 
-    /// Edit the core configuration file
-    Edit(ConfigEditCommand),
+    /**
+    Add a new event to the staging area
+    */
+    Add(EventAddCommand),
 
-    /// Show the core configuration file
-    Show(ConfigShowCommand)
+    /**
+    Unstage an event
+    */
+    Unstage(EventUnstageCommand)
 }
 
 
 #[derive(Debug, Args)]
 pub struct EventCommand {
 
-    /// The date corresponding to the event to be added
-    #[arg(short, long, default_value_t = String::from("TODAY"))]
-    pub date: String,
-
-    /// 'Commit message' for the event
-    #[arg(short, long, default_value_t = String::from("null"))]
-    pub message: String,
-
-    // Project name for the event
-    #[arg(short, long, default_value_t = String::from("null"))]
-    pub project: String
+    #[clap(subcommand)]
+    pub command: EventSubcommand,
 
 }

@@ -67,7 +67,7 @@ pub struct Arguments {
     Dangerous command, will override safeties (such as adding an event that
     lasts longer than the default 8 hours).
     */
-    pub force: bool,
+    pub disable_safeties: bool,
 
     #[clap(subcommand)]
     pub command: Command,

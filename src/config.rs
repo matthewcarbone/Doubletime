@@ -1,3 +1,7 @@
+/**
+Module for dealing with Doubletime-specific configuration files.
+*/
+
 use edit;
 use std::collections::HashMap;
 
@@ -21,6 +25,11 @@ pub struct Project {
     /// it.
     active: bool,
 
+    /// Whether or not the project is "real"
+    /// A real project has features on it enabled such as being able to add
+    /// time to it. Not being real means it's basically a placeholder.
+    real: bool,
+
     start_date: String,
     end_date: String,
 
@@ -35,17 +44,6 @@ pub struct Config {
 }
 
 
-/// Gets the config path as a PathBuf object
-fn get_config_path() -> PathBuf {
-    let home = get_my_home().unwrap().unwrap();
-    let mut file_path = PathBuf::from(home);
-    file_path.push("Doubletime");
-    file_path.push("config.yaml");
-    trace!("Got config path at {}", file_path.to_string_lossy());
-    return file_path;
-}
-
-
 /// Returns a default version of the Config so that users have a starting point
 pub fn get_default_config() -> Config {
     let mut example_metadata = HashMap::new();
@@ -53,6 +51,7 @@ pub fn get_default_config() -> Config {
     let example_project = Project {
         total_time: 100.0,
         active: true,
+        real: false,
         start_date: "01-October-23".to_string(),
         end_date: "01-October-24".to_string(),
         metadata: example_metadata
@@ -63,6 +62,36 @@ pub fn get_default_config() -> Config {
     };
     trace!("Default config retrieved: {:?}", config);
     return config;
+}
+
+
+/**
+Gets Doubletime's home directory
+*/
+pub fn get_doubletime_home_directory() -> PathBuf {
+    let home = get_my_home().unwrap().unwrap();
+    let mut file_path = PathBuf::from(home);
+    file_path.push("Doubletime");
+    return file_path;
+}
+
+
+/**
+Gets the path of a directory. The path will be {HOME}/Doubletime/{name}.
+*/
+pub fn get_doubletime_directory_path(name: String) -> PathBuf {
+    let mut staging_path = get_doubletime_home_directory();
+    staging_path.push(name);
+    return staging_path;
+}
+
+
+/// Gets the config path as a PathBuf object
+fn get_config_path() -> PathBuf {
+    let mut file_path = get_doubletime_home_directory();
+    file_path.push("config.yaml");
+    trace!("Got config path at {}", file_path.to_string_lossy());
+    return file_path;
 }
 
 
@@ -78,10 +107,21 @@ fn write_default_config() -> Result<(), Box<dyn std::error::Error>> {
     return Ok(());
 }
 
-
-/// Setup the .doubletime home directory
+/**
+Setup the Doubletime home directory and all required subdirectories
+*/
 fn initialize() -> Result<(), Box<dyn std::error::Error>> {
     trace!("Attempting initialization");
+
+    // Make the staging directory
+    let staging_directory = get_doubletime_directory_path("Staging".to_string());
+    make_directory(staging_directory)?;
+
+    // Make the staging directory
+    let project_directory = get_doubletime_directory_path("Projects".to_string());
+    make_directory(project_directory)?;
+
+
     let config_path = get_config_path();
     let parent = PathBuf::from(config_path.parent().unwrap());
     make_directory(parent)?;
@@ -90,10 +130,6 @@ fn initialize() -> Result<(), Box<dyn std::error::Error>> {
     }
     return Ok(());
 }
-
-
-
-
 
 /// Edits the config file in the user's default editor.
 /// See here https://docs.rs/edit/latest/edit/fn.get_editor.html for details

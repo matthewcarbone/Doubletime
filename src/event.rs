@@ -1,3 +1,4 @@
+use crate::cli;
 use std::fs::File;
 use std::path::PathBuf;
 use chrono::NaiveDate;
@@ -5,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use homedir::get_my_home;
 
-use crate::cli::cli_add::{AddCommand};
+use crate::cli::cli_event::{EventCommand};
 use crate::datetime::{parse_command_line_date, get_current_timestamp};
 use crate::file_utils::make_directory;
 
@@ -28,13 +29,9 @@ impl Event {
     fn log_info(&self) {
         let uid_slice = &self.uuid[..8];
         log::info!("Staging Event {}", uid_slice);
-        log::debug!("| timestamp   {}", self.timestamp);
-        log::debug!("| full commit {}", self.uuid);
         log::info!("| date        {}", self.now_str);
-        log::info!("| project     {}", self.project);
-        let message_slice = &self.message[..30];
-        log::debug!("| full msg    {}", self.message);
-        log::info!("| message     {} ...", message_slice);
+        log::info!("| project     {:?}", self.project);
+        log::info!("| message     {:?}", self.message);
     }
 
     fn stage(&self) -> Result<(), Box<dyn std::error::Error>> {
@@ -85,38 +82,73 @@ impl Event {
 
 }
 
-pub fn _add(args: &AddCommand) {
+fn handle_default_strings(message: &Option<String>) -> String {
+    match message {
+        Some(msg) => {return msg.to_string();},
+        None => {return "NULL".to_string();}
+    }
+}
+
+fn add(args: &cli::cli_event::EventAddCommand) {
+    log::trace!("event.add called with args {:?}", args);
 
     // Parse the command line date
     let now: NaiveDate = parse_command_line_date(&args.date);
-    log::debug!("Parsed date from command line to {:?}", now);
+    log::trace!("Parsed date from command line to {:?}", now);
 
     // Get the current stimestamp
     let timestamp: i64 = get_current_timestamp();
+    log::trace!("Timestamp: {}", timestamp);
 
     // Generate a uid
     let uuid = Uuid::new_v4().to_simple().to_string();
-    log::trace!("UID generated: {}", uuid);
+    log::trace!("UID: {}", uuid);
+
+    // Deal with message defaults
+    let message = handle_default_strings(&args.message);
+    log::trace!("Message: {}", message);
+
+    // Deal with project defaults
+    let project = handle_default_strings(&args.project);
+    log::trace!("Project: {}", project);
+
+    let now_str = now.format("%d-%b-%y").to_string();
+    log::trace!("Now is {} in string format", now_str);
 
     let payload: Event = Event {
         timestamp: timestamp,
-        message: (&args.message).to_string(),
-        project: (&args.project).to_string(),
-        now_str: now.format("%d-%b-%y").to_string(),
+        message: message,
+        project: project,
+        now_str: now_str,
         uuid: uuid
     };
 
     payload.log_info();
-    
+}
 
-    match payload.stage() {
-        Ok(()) => {
-            log::info!("Staging successful");
-        },
-        Err(e) => {
-            log::error!("Error during Event.stage - {:?}", e);
-            panic!();
+pub fn execute(args: &cli::cli_event::EventCommand) {
+
+    // Match to the variety of event subcommands
+    let current_command = &args.command;
+
+    match current_command {
+        cli::cli_event::EventSubcommand::Add(event_sc) => {add(event_sc);},
+        cli::cli_event::EventSubcommand::Unstage(_event_sc) => {
+            log::debug!("Running event.unstage");
         }
     }
+
+    
+    
+
+    // match payload.stage() {
+    //     Ok(()) => {
+    //         log::info!("Staging successful");
+    //     },
+    //     Err(e) => {
+    //         log::error!("Error during Event.stage - {:?}", e);
+    //         panic!();
+    //     }
+    // }
 
 }

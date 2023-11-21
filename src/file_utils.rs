@@ -1,3 +1,7 @@
+/**
+Basic file utilities that are agnostic to the Doubletime code.
+*/
+
 use std::io::Read;
 use std::io::Write;
 use std::fs::File;
@@ -7,20 +11,6 @@ use std::fs::create_dir_all;
 
 use log::trace;
 
-
-/// Safely makes a directory. If the directory already exists, safely
-/// exits without doing anything. 
-
-// let p = PathBuf::from("yo/lo/swag");
-// match file_utils::make_directory(p) {
-//     Ok(()) => {
-//         log::info!("Made directory!");
-//     },
-//     Err(e) => {
-//         log::error!("Error making directory - {:?}", e);
-//         panic!();
-//     }
-// }
 
 pub fn make_directory(directory: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let dstring = directory.to_string_lossy();
@@ -58,21 +48,3 @@ pub fn read_file_to_string(file_path: PathBuf) -> Result<String, std::io::Error>
     file.read_to_string(&mut content)?;
     return Ok(content);
 }
-
-
-// pub fn edit_file
-
-
-// /// Load a file from disk and returns it as a String
-// pub fn load_file(destination: PathBuf) -> Result<String, Box<dyn std::error::Error>> {
-//     let mut file = File::open(destination)?;
-//     let mut contents = String::new();
-//     file.read_to_string(&mut contents)?;
-//     return Ok(contents);
-// }
-
-
-// pub fn write_file(destination: PathBuf, data: String) {
-//     let mut f = File::create(destination).expect("Unable to create file");
-//     f.write_all(data.as_bytes()).expect("Unable to write data");
-// }
